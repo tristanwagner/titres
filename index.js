@@ -72,10 +72,11 @@ const gridHeight = gridRows * gridCellHeight;
 
 const grid = initGrid(gridRows, gridColumns);
 
-function displayFrames(x, y){
+function displayInfos(x, y){
     ctx.fillStyle = 'black';
     ctx.font = '32px serif';
     ctx.fillText(`Frame: ${gameFrame}`, x, y);
+    ctx.fillText(`Score: ${score}`, x, y + 32);
 };
 
 //***
@@ -137,7 +138,7 @@ const pieces = [
 ]
 
 function getRandomPiece() {
-    return pieces[Math.floor(Math.random() * pieces.length)];
+    return Object.assign({}, pieces[Math.floor(Math.random() * pieces.length)]);
 }
 
 const spawn = {
@@ -163,7 +164,6 @@ function checkPlayerBounds(player) {
                 blocked.bottom = (col >= gridColumns || row + 1 >= gridRows) || grid[row + 1][col] != 0;
             }
 
-            // do we actually need that ?
             if (!blocked.top) {
                 blocked.top = row - 1 < 0 || grid[row - 1]?.[col] != 0;
             }
@@ -178,6 +178,31 @@ function checkPlayerBounds(player) {
 
             return blocked;
         }, { bottom: false, top: false, left: false, right: false })
+}
+
+function degreesToRadians(deg) {
+  return deg * (Math.PI / 180);
+}
+
+function rotatePlayer(player) {
+  const updatedVectors = player.piece.vectors.map(vector => {
+    const rad = degreesToRadians(90);
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+    const px = vector.x * cos - vector.y * sin;
+    const py = vector.x * sin + vector.y * cos;
+    return {
+      x: Math.round(px),
+      y: Math.round(py),
+    }
+  })
+
+  const _player = Object.assign({}, player, { piece: { vectors: updatedVectors} })
+
+  // only update player if it is in bounds
+  if (Object.values(checkPlayerBounds(_player)).every(x => !x)) {
+    player.piece.vectors = updatedVectors;
+  }
 }
 
 let simulations = 0;
@@ -200,7 +225,7 @@ function draw() {
     ctx.fillStyle = 'black';
     ctx.fillRect(offsetX, offsetY, gridWidth, gridHeight);
 
-    displayFrames(20, 30);
+    displayInfos(20, 30);
 
     // display grid
     for (let i = 0; i < gridRows; i++) {
@@ -261,6 +286,9 @@ function simulate() {
                     player.y += gridCellHeight;
                 }
                 break;
+            case "Space":
+                rotatePlayer(player);
+                break;
         }
         keyboard.pressing = false;
     }
@@ -295,10 +323,6 @@ function simulate() {
 
     gameExit = keyboard.key == "Escape";
 
-    //TODO:
-    // for each line to clear, put line to 0
-    //and lower each line above by 1 row
-    // and draw new grid
     const linesToClear = grid.reduce((list, row, index) => {
         if (row.every((x) => x != 0)) {
             list.push(index);
@@ -307,7 +331,11 @@ function simulate() {
     }, [])
 
     if (linesToClear.length) {
-      console.log("line to clear", linesToClear);
+      score += 100 * linesToClear.length * linesToClear.length
+      for (const line of linesToClear) {
+        grid.splice(line, 1);
+        grid.unshift(Array(gridColumns).fill(0))
+      }
     }
 
     // check first line

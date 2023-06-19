@@ -6,7 +6,10 @@ This is a work in progress
 
 ## TODO
 
-* [] clear completed lines
-* [] implement piece rotation
-* [] implement levels and score
-* [] implement show next piece 
+- [x] clear completed lines
+- [x] implement piece rotation
+- [x] implement score
+- [ ] implement levels ?
+- [ ] implement show next piece
+- [ ] improve piece rotation
+
